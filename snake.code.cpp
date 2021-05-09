@@ -32,6 +32,7 @@ COORD rand_apple_pos() {
 }
 
 void make_wall() {
+	SetConsoleCursorPosition(h, { 0, 0 });
 	for (int i = 0; i < cols + 1; ++i)putchar(wall);
 	for (int j = 0; j < lines - 3; ++j) {
 		for (int i = 0; i < cols - 2; ++i)putchar(' ');
@@ -76,6 +77,7 @@ void paint_snake(char dir) {
 void game() {
 	snake.clear();
 	snake.push_back({ ((cols - 2) / 2), ((lines - 3) / 2) });
+
 	SetConsoleCursorPosition(h, { 0, 0 });
 	direction = 'u';
 	apple_c = rand_apple_pos();
@@ -123,9 +125,11 @@ void game() {
 			SetConsoleTextAttribute(h, 10);
 		}
 	}
-	SetConsoleTextAttribute(h, 4);
 	SetConsoleCursorPosition(h, { (cols - 12) / 2, (lines - 3) / 2 - 2 });
-	cout << "Game over!";
+	if (snake.size() != (cols - 2) * (lines - 3)) {
+		SetConsoleTextAttribute(h, 4);
+		cout << "Game over!";
+	}else cout << "You win!!!";
 	Sleep(750);
 }
 
@@ -178,7 +182,15 @@ bool play_again() {
 	}
 }
 
-void card_size() {
+void input_card_size() {
+	system("mode con cols=50 lines=31");
+	MoveWindow(GetConsoleWindow(), 50, 50, 2000, 2000, true);
+	h = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_CURSOR_INFO cci = { sizeof(cci), false };
+	SetConsoleCursorInfo(h, &cci);
+	SetConsoleTextAttribute(h, 14);
+	make_wall();
+	
 	SetConsoleTextAttribute(h, 10);
 	SetConsoleCursorPosition(h, { (cols - 18) / 2, (lines - 3) / 2 - 1 });
 	cout << "Choose map size:";
@@ -223,10 +235,12 @@ void card_size() {
 			if (flag == 'M') {
 				cols = 65;
 				lines = 41;
+				system("mode con cols=65 lines=41");
 			}
 			if (flag == 'L') {
 				cols = 80;
 				lines = 51;
+				system("mode con cols=80 lines=51");
 			}
 			return;
 		}
@@ -240,22 +254,72 @@ void card_size() {
 	}
 }
 
-int main()
-{
-	system("mode con cols=50 lines=31");
-	MoveWindow(GetConsoleWindow(), 50, 50, 2000, 2000, true);
-	h = GetStdHandle(STD_OUTPUT_HANDLE);
-	CONSOLE_CURSOR_INFO cci = { sizeof(cci), false };
-	SetConsoleCursorInfo(h, &cci);
+void input_speed() {
 	SetConsoleTextAttribute(h, 14);
 	make_wall();
-	card_size();
-	if (cols == 65) {
-		system("mode con cols=65 lines=41");
+	SetConsoleTextAttribute(h, 10);
+	SetConsoleCursorPosition(h, { (cols - 18) / 2, (lines - 3) / 2 - 1 });
+	cout << " Choose speed:  ";       
+	SetConsoleCursorPosition(h, { (cols - 26) / 2, (lines - 3) / 2 + 1 });
+	cout << "Slow     Normal     Fast";
+	SetConsoleCursorPosition(h, { (cols - 26) / 2, (lines - 3) / 2 + 2 });
+	cout << "         ``````";
+	char flag = 'N';
+	auto input = [&](auto&& input) -> bool {
+		int k = _getch();
+		switch (k) {
+		case 75:
+			if (flag == 'S')
+				flag = 'F';
+			else
+				if (flag == 'N')
+					flag = 'S';
+				else
+					if (flag == 'F')
+						flag = 'N';
+			break;
+		case 77:
+			if (flag == 'S')
+				flag = 'N';
+			else
+				if (flag == 'N')
+					flag = 'F';
+				else
+					if (flag == 'F')
+						flag = 'S';
+			break;
+		case 13:
+			return true;
+			break;
+		default:
+			input(input);
+		}
+		return false;
+	};
+	while (true) {
+		if (input(input)) {
+			if (flag == 'S') {
+				sleep_time = 300;
+			}
+			if (flag == 'F') {
+				sleep_time = 100;
+			}
+			return;
+		}
+		SetConsoleCursorPosition(h, { (cols - 26) / 2, (lines - 3) / 2 + 2 });
+		if (flag == 'S')
+			cout << "````                    ";
+		if (flag == 'N')
+			cout << "         ``````         ";
+		if (flag == 'F')
+			cout << "                    ````";
 	}
-	if (cols == 80) {
-		system("mode con cols=80 lines=51");
-	}
+}
+
+int main()
+{
+	input_card_size();
+	input_speed();
 	srand(time(0));
 	do {
 		game();
