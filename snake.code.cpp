@@ -9,6 +9,7 @@ using namespace std;
 
 COORD apple_c, tail_end;
 char direction = 'u', apple_ch = '@', head_ch = 1, tail_ch = 'o', wall = 35;
+bool wall_state = true;
 short sleep_time = 200, cols = 50, lines = 31;
 vector <COORD> snake;
 HANDLE h;
@@ -32,6 +33,8 @@ COORD rand_apple_pos() {
 }
 
 void make_wall() {
+	if (wall_state == false) { system("cls"); return; }
+	SetConsoleTextAttribute(h, 14);
 	SetConsoleCursorPosition(h, { 0, 0 });
 	for (int i = 0; i < cols + 1; ++i)putchar(wall);
 	for (int j = 0; j < lines - 3; ++j) {
@@ -46,7 +49,8 @@ bool snake_live() {
 	for (int i = 1; i < snake.size(); ++i) {
 		if (snake[0].X == snake[i].X && snake[0].Y == snake[i].Y)return false;
 	}
-	if (snake[0].X == 0 || snake[0].X == cols - 1 || snake[0].Y == 0 || snake[0].Y == lines - 2)return false;
+	if (wall_state == true)
+		if (snake[0].X == 0 || snake[0].X == cols - 1 || snake[0].Y == 0 || snake[0].Y == lines - 2)return false;
 	return true;
 }
 
@@ -66,6 +70,12 @@ void paint_snake(char dir) {
 	if (dir == 'd')snake[0] = { snake[0].X, snake[0].Y + 1 };
 	if (dir == 'l')snake[0] = { snake[0].X - 1, snake[0].Y };
 	if (dir == 'r')snake[0] = { snake[0].X + 1, snake[0].Y };
+	if (wall_state == false) {
+		if (snake[0].X == -1) snake[0].X = cols - 1;
+		if (snake[0].X == cols) snake[0].X = 0;
+		if (snake[0].Y == -1) snake[0].Y = lines - 2;
+		if (snake[0].Y == lines - 1) snake[0].Y = 0;
+	}
 	for (int i = 1; i < snake.size(); ++i) {
 		SetConsoleCursorPosition(h, snake[i]);
 		putchar(tail_ch);
@@ -78,11 +88,9 @@ void game() {
 	snake.clear();
 	snake.push_back({ ((cols - 2) / 2), ((lines - 3) / 2) });
 
-	SetConsoleCursorPosition(h, { 0, 0 });
 	direction = 'u';
 	apple_c = rand_apple_pos();
 
-	SetConsoleTextAttribute(h, 14);
 	make_wall();
 	SetConsoleTextAttribute(h, 12);
 	SetConsoleCursorPosition(h, apple_c);
@@ -126,10 +134,12 @@ void game() {
 		}
 	}
 	SetConsoleCursorPosition(h, { (cols - 12) / 2, (lines - 3) / 2 - 2 });
-	if (snake.size() != (cols - 2) * (lines - 3)) {
+	if ((snake.size() == (cols - 2) * (lines - 3) && wall_state == true) || (snake.size() == (cols) * (lines - 1) && wall_state == false)) {
+		cout << "You win!!!";
+	} else {
 		SetConsoleTextAttribute(h, 4);
 		cout << "Game over!";
-	}else cout << "You win!!!";
+	}
 	Sleep(750);
 }
 
@@ -188,7 +198,6 @@ void input_card_size() {
 	h = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_CURSOR_INFO cci = { sizeof(cci), false };
 	SetConsoleCursorInfo(h, &cci);
-	SetConsoleTextAttribute(h, 14);
 	make_wall();
 	
 	SetConsoleTextAttribute(h, 10);
@@ -255,7 +264,6 @@ void input_card_size() {
 }
 
 void input_speed() {
-	SetConsoleTextAttribute(h, 14);
 	make_wall();
 	SetConsoleTextAttribute(h, 10);
 	SetConsoleCursorPosition(h, { (cols - 18) / 2, (lines - 3) / 2 - 1 });
@@ -316,10 +324,61 @@ void input_speed() {
 	}
 }
 
+void input_wall_state() {
+	make_wall();
+	SetConsoleTextAttribute(h, 10);
+	SetConsoleCursorPosition(h, { (cols - 20) / 2, (lines - 3) / 2 - 1 });
+	cout << "Choose wall state:";
+	SetConsoleCursorPosition(h, { (cols - 20) / 2, (lines - 3) / 2 + 1 });
+	cout << "Exists   Not exist";
+	SetConsoleCursorPosition(h, { (cols - 20) / 2, (lines - 3) / 2 + 2 });
+	cout << "``````            ";
+	char flag = 'E';
+	auto input = [&](auto&& input) -> bool {
+		int k = _getch();
+		switch (k) {
+		case 75:
+			if (flag == 'E')
+				flag = 'N';
+			else
+				if (flag == 'N')
+					flag = 'E';
+			break;
+		case 77:
+			if (flag == 'E')
+				flag = 'N';
+			else
+				if (flag == 'N')
+					flag = 'E';
+			break;
+		case 13:
+			return true;
+			break;
+		default:
+			input(input);
+		}
+		return false;
+	};
+	while (true) {
+		if (input(input)) {
+			if (flag == 'N') {
+				wall_state = false;
+			}
+			return;
+		}
+		SetConsoleCursorPosition(h, { (cols - 20) / 2, (lines - 3) / 2 + 2 });
+		if (flag == 'E')
+			cout << "``````            ";
+		if (flag == 'N')
+			cout << "         `````````";
+	}
+}
+
 int main()
 {
 	input_card_size();
 	input_speed();
+	input_wall_state();
 	srand(time(0));
 	do {
 		game();
