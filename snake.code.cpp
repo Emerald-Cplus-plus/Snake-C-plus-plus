@@ -7,11 +7,12 @@
 
 using namespace std;
 
-COORD apple_c, tail_end;
+COORD tail_end;
 char direction = 'u', apple_ch = '@', head_ch = 1, tail_ch = 'o', wall = 35;
 bool wall_state = true;
 short sleep_time = 200, cols = 50, lines = 31;
 vector <COORD> snake;
+vector <COORD> apples;
 HANDLE h;
 
 void retention() {
@@ -27,6 +28,9 @@ COORD rand_apple_pos() {
 		flag = true;
 		for (int i = 0; i < snake.size() && flag == true; ++i) {
 			if (snake[i].X == answer.X && snake[i].Y == answer.Y) flag = false;
+		}
+		for (int i = 0; i < apples.size() && flag == true; ++i) {
+			if (apples[i].X == answer.X && apples[i].Y == answer.Y) flag = false;
 		}
 	}
 	return answer;
@@ -89,12 +93,17 @@ void game() {
 	snake.push_back({ ((cols - 2) / 2), ((lines - 3) / 2) });
 
 	direction = 'u';
-	apple_c = rand_apple_pos();
+	for (int i = 0; i < apples.size(); ++i) {
+		apples[i] = rand_apple_pos();
+	}
 
 	make_wall();
 	SetConsoleTextAttribute(h, 12);
-	SetConsoleCursorPosition(h, apple_c);
-	putchar(apple_ch);
+	for (int i = 0; i < apples.size(); ++i) {
+		SetConsoleCursorPosition(h, apples[i]);
+		putchar(apple_ch);
+	}
+	
 	SetConsoleTextAttribute(h, 10);
 	SetConsoleCursorPosition(h, snake[0]);
 	putchar(head_ch);
@@ -123,15 +132,19 @@ void game() {
 			}
 		}
 		paint_snake(direction);
-		if (snake[0].X == apple_c.X && snake[0].Y == apple_c.Y) {
-			snake.push_back(tail_end);
-			paint_snake(' ');
-			apple_c = rand_apple_pos();
-			SetConsoleTextAttribute(h, 12);
-			SetConsoleCursorPosition(h, apple_c);
-			putchar(apple_ch);
-			SetConsoleTextAttribute(h, 10);
+		for (int i = 0; i < apples.size(); ++i) {
+			if (snake[0].X == apples[i].X && snake[0].Y == apples[i].Y) {
+				snake.push_back(tail_end);
+				paint_snake(' ');
+				apples[i] = rand_apple_pos();
+				SetConsoleTextAttribute(h, 12);
+				SetConsoleCursorPosition(h, apples[i]);
+				putchar(apple_ch);
+				SetConsoleTextAttribute(h, 10);
+				break;
+			}
 		}
+		
 	}
 	SetConsoleCursorPosition(h, { (cols - 12) / 2, (lines - 3) / 2 - 2 });
 	if ((snake.size() == (cols - 2) * (lines - 3) && wall_state == true) || (snake.size() == (cols) * (lines - 1) && wall_state == false)) {
@@ -324,6 +337,64 @@ void input_speed() {
 	}
 }
 
+void input_quantity_apples() {
+	make_wall();
+	SetConsoleTextAttribute(h, 10);
+	SetConsoleCursorPosition(h, { (cols - 28) / 2, (lines - 3) / 2 - 1 });
+	cout << "Choose quantity of apples:";
+	SetConsoleCursorPosition(h, { (cols - 28) / 2, (lines - 3) / 2 + 1 });
+	cout << " 1 3 5 7 9 11 13 15 17 19";
+	SetConsoleCursorPosition(h, { (cols - 28) / 2, (lines - 3) / 2 + 2 });
+	cout << " `                       ";
+	int flag = 1;
+	auto input = [&](auto&& input) -> bool {
+		int k = _getch();
+		switch (k) {
+		case 75:
+			flag -= 2;
+			if (flag == -1) flag = 19;
+			break;
+		case 77:
+			flag += 2;
+			if (flag == 21) flag = 1;
+			break;
+		case 13:
+			return true;
+			break;
+		default:
+			input(input);
+		}
+		return false;
+	};
+	while (true) {
+		if (input(input)) {
+			apples = vector<COORD>(flag);
+			return;
+		}
+		SetConsoleCursorPosition(h, { (cols - 28) / 2, (lines - 3) / 2 + 2 });
+		if (flag == 1)
+			cout << " `                       ";
+		if (flag == 3)
+			cout << "   `                     ";
+		if (flag == 5)
+			cout << "     `                   ";
+		if (flag == 7)
+			cout << "       `                 ";
+		if (flag == 9)
+			cout << "         `               ";
+		if (flag == 11)
+			cout << "           ``            ";
+		if (flag == 13)
+			cout << "              ``         ";
+		if (flag == 15)
+			cout << "                 ``      ";
+		if (flag == 17)
+			cout << "                    ``   ";
+		if (flag == 19)
+			cout << "                       ``";
+	}
+}
+
 void input_wall_state() {
 	make_wall();
 	SetConsoleTextAttribute(h, 10);
@@ -378,6 +449,7 @@ int main()
 {
 	input_card_size();
 	input_speed();
+	input_quantity_apples();
 	input_wall_state();
 	srand(time(0));
 	do {
