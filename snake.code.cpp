@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 #include <windows.h>
 #include <conio.h>
 #include <ctime>
@@ -10,7 +11,7 @@ using namespace std;
 COORD tail_end;
 char direction = 'u', apple_ch = '@', head_ch = 1, tail_ch = 'o', wall = 35;
 bool wall_state = true;
-short sleep_time = 200, cols = 50, lines = 31;
+short sleep_time = 200, cols = 50, lines = 31, record = 0;
 vector <COORD> snake;
 vector <COORD> apples;
 HANDLE h;
@@ -26,10 +27,10 @@ COORD rand_apple_pos() {
 		answer.X = rand() % (cols - 3) + 1;
 		answer.Y = rand() % (lines - 3) + 1;
 		flag = true;
-		for (int i = 0; i < snake.size() && flag == true; ++i) {
+		for (unsigned int i = 0; i < snake.size() && flag == true; ++i) {
 			if (snake[i].X == answer.X && snake[i].Y == answer.Y) flag = false;
 		}
-		for (int i = 0; i < apples.size() && flag == true; ++i) {
+		for (unsigned int i = 0; i < apples.size() && flag == true; ++i) {
 			if (apples[i].X == answer.X && apples[i].Y == answer.Y) flag = false;
 		}
 	}
@@ -50,7 +51,7 @@ void make_wall() {
 }
 
 bool snake_live() {
-	for (int i = 1; i < snake.size(); ++i) {
+	for (unsigned int i = 1; i < snake.size(); ++i) {
 		if (snake[0].X == snake[i].X && snake[0].Y == snake[i].Y)return false;
 	}
 	if (wall_state == true)
@@ -80,7 +81,7 @@ void paint_snake(char dir) {
 		if (snake[0].Y == -1) snake[0].Y = lines - 2;
 		if (snake[0].Y == lines - 1) snake[0].Y = 0;
 	}
-	for (int i = 1; i < snake.size(); ++i) {
+	for (unsigned int i = 1; i < snake.size(); ++i) {
 		SetConsoleCursorPosition(h, snake[i]);
 		putchar(tail_ch);
 	}
@@ -93,13 +94,13 @@ void game() {
 	snake.push_back({ ((cols - 2) / 2), ((lines - 3) / 2) });
 
 	direction = 'u';
-	for (int i = 0; i < apples.size(); ++i) {
+	for (unsigned int i = 0; i < apples.size(); ++i) {
 		apples[i] = rand_apple_pos();
 	}
 
 	make_wall();
 	SetConsoleTextAttribute(h, 12);
-	for (int i = 0; i < apples.size(); ++i) {
+	for (unsigned int i = 0; i < apples.size(); ++i) {
 		SetConsoleCursorPosition(h, apples[i]);
 		putchar(apple_ch);
 	}
@@ -107,7 +108,11 @@ void game() {
 	SetConsoleTextAttribute(h, 10);
 	SetConsoleCursorPosition(h, snake[0]);
 	putchar(head_ch);
-
+	SetConsoleCursorPosition(h, { 0, lines - 1 });
+	SetConsoleTextAttribute(h, 15);
+	cout << "Length:                        Best: ";
+	SetConsoleTextAttribute(h, 10); 
+	
 	while (snake_live()) {
 		Sleep(sleep_time);
 		if (_kbhit()) {
@@ -115,16 +120,20 @@ void game() {
 			if (k == 0 || k == 224) k = _getch();
 			switch (k) {
 			case 80:
-				direction = 'd';
+				if (direction != 'u')
+					direction = 'd';
 				break;
 			case 72:
-				direction = 'u';
+				if (direction != 'd')
+					direction = 'u';
 				break;
 			case 75:
-				direction = 'l';
+				if (direction != 'r')
+					direction = 'l';
 				break;
 			case 77:
-				direction = 'r';
+				if (direction != 'l')
+					direction = 'r';
 				break;
 			case 27:// Esc
 				exit(0);
@@ -132,7 +141,7 @@ void game() {
 			}
 		}
 		paint_snake(direction);
-		for (int i = 0; i < apples.size(); ++i) {
+		for (unsigned int i = 0; i < apples.size(); ++i) {
 			if (snake[0].X == apples[i].X && snake[0].Y == apples[i].Y) {
 				snake.push_back(tail_end);
 				paint_snake(' ');
@@ -144,7 +153,13 @@ void game() {
 				break;
 			}
 		}
-		
+		if (snake.size() - 1 > record) record = snake.size() - 1;
+		SetConsoleCursorPosition(h, {8, lines - 1});
+		SetConsoleTextAttribute(h, 15);
+		cout << snake.size() - 1;
+		SetConsoleCursorPosition(h, {37, lines - 1});
+		cout << record;
+		SetConsoleTextAttribute(h, 10);
 	}
 	SetConsoleCursorPosition(h, { (cols - 12) / 2, (lines - 3) / 2 - 2 });
 	if ((snake.size() == (cols - 2) * (lines - 3) && wall_state == true) || (snake.size() == (cols) * (lines - 1) && wall_state == false)) {
@@ -445,16 +460,30 @@ void input_wall_state() {
 	}
 }
 
+void reading_best_record() {
+	ifstream in("best.record");
+	if (in.is_open())
+		in >> record;
+}
+
+void writing_best_record() {
+	ofstream out("best.record");
+	if (out.is_open())
+		out << record;
+}
+
 int main()
 {
+	reading_best_record();
 	input_card_size();
 	input_speed();
 	input_quantity_apples();
 	input_wall_state();
-	srand(time(0));
+	srand((unsigned int)time(nullptr));
 	do {
 		game();
 	} while (play_again());
+	writing_best_record();
 	//retention();
 	return 0;
 }
